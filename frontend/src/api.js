@@ -2,6 +2,14 @@
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
 
 export const CATEGORIES = ['Suggestion', 'Complaint', 'Appreciation', 'General Feedback'];
+export const STATUSES = ['Pending', 'Reviewed', 'Resolved'];
+
+export class ApiError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.status = status;
+  }
+}
 
 async function request(path, { method = 'GET', body, token } = {}) {
   const headers = {};
@@ -27,16 +35,20 @@ async function request(path, { method = 'GET', body, token } = {}) {
   return data;
 }
 
-export class ApiError extends Error {
-  constructor(message, status) {
-    super(message);
-    this.status = status;
-  }
-}
-
-export const getFeedback = () => request('/api/feedback');
+// filters: { search, category, status } (empty values are ignored)
+export const getFeedback = (filters = {}) => {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value && String(value).trim()) params.set(key, String(value).trim());
+  });
+  const qs = params.toString();
+  return request(`/api/feedback${qs ? `?${qs}` : ''}`);
+};
 export const createFeedback = (payload) => request('/api/feedback', { method: 'POST', body: payload });
 export const deleteFeedback = (id, token) => request(`/api/feedback/${id}`, { method: 'DELETE', token });
+export const updateStatus = (id, status, token) =>
+  request(`/api/feedback/${id}/status`, { method: 'PATCH', body: { status }, token });
+export const getStats = (token) => request('/api/feedback/stats', { token });
 export const login = (username, password) =>
   request('/api/auth/login', { method: 'POST', body: { username, password } });
 export const checkSession = (token) => request('/api/auth/me', { token });

@@ -50,6 +50,20 @@ student-feedback-system/
 
 ---
 
+### API summary
+
+| Method | Route | Access | Notes |
+|--------|-------|--------|-------|
+| GET | `/api/feedback` | public | Optional `?category=`, `?status=`, `?search=` |
+| POST | `/api/feedback` | public | Validates, saves with status `Pending` |
+| GET | `/api/feedback/:id` | public | One record |
+| PATCH | `/api/feedback/:id/status` | admin | `Pending`, `Reviewed`, or `Resolved` |
+| DELETE | `/api/feedback/:id` | admin | |
+| GET | `/api/feedback/stats` | admin | Totals by category and status |
+| POST | `/api/auth/login` | public | Returns an admin token |
+
+---
+
 ## 2. Before you start
 
 Install: **Node.js 18 or newer** (nodejs.org), **Git**, and **Postman**. Create free accounts on **Supabase**, **GitHub**, and **Render**.
@@ -59,7 +73,8 @@ Install: **Node.js 18 or newer** (nodejs.org), **Git**, and **Postman**. Create 
 ## 3. Set up Supabase (the database)
 
 1. In Supabase, click **New project**, give it a name, set a database password, and wait until it finishes creating.
-2. Open **SQL Editor** > **New query**. Copy everything from `backend/supabase/schema.sql`, paste it, and click **Run**. This creates the `feedback` table (`id`, `student_name`, `category`, `message`, `created_at`) and turns on Row Level Security with no public policies, so nobody can touch the data except your backend.
+2. Open **SQL Editor** > **New query**. Copy everything from `backend/supabase/schema.sql`, paste it, and click **Run**. This creates the `feedback` table (`id`, `student_name`, `category`, `message`, `status`, `created_at`) and turns on Row Level Security with no public policies, so nobody can touch the data except your backend.
+   - **Already created the table before status tracking was added?** Run `backend/supabase/add_status.sql` instead. It adds the `status` column and keeps your existing records (they become "Pending"). Do this before using the updated app, otherwise the Feedback Wall will show an error.
 3. Open **Project Settings** > **API** (or **API Keys**). Copy two values:
    - **Project URL** (looks like `https://abcd1234.supabase.co`)
    - **service_role key** (a long secret key)
@@ -126,6 +141,11 @@ Create a Postman variable `baseUrl` (local: `http://localhost:5000`, later your 
 | 6 | `DELETE {{baseUrl}}/api/feedback/<id>` | no token | **401 Unauthorized** |
 | 7 | `POST {{baseUrl}}/api/auth/login` | `{"username":"admin","password":"YourStrongPassword"}` | **200 OK** with a `token` |
 | 8 | `DELETE {{baseUrl}}/api/feedback/<id>` | header `Authorization: Bearer <token>` | **200 OK** |
+| 9 | `GET {{baseUrl}}/api/feedback?category=Complaint&search=aircon` | none | **200 OK**, only matching records |
+| 10 | `GET {{baseUrl}}/api/feedback?category=Nope` | none | **400 Bad Request** |
+| 11 | `PATCH {{baseUrl}}/api/feedback/<id>/status` | header `Authorization: Bearer <token>`, JSON `{"status":"Reviewed"}` | **200 OK** |
+| 12 | `PATCH {{baseUrl}}/api/feedback/<id>/status` | same header, JSON `{"status":"Done"}` | **400 Bad Request** |
+| 13 | `GET {{baseUrl}}/api/feedback/stats` | header `Authorization: Bearer <token>` | **200 OK**, totals by category and status |
 
 Take a screenshot of each result for your submission. Status code **500** is only returned for unexpected server or database failures.
 
@@ -208,4 +228,4 @@ Open the frontend URL, submit feedback, open **View Feedback**, then log in as a
 - [ ] **Part 1 (20):** `docs/REFLECTION.md` and `docs/architecture.svg` (export to PDF/Word if your instructor wants a document)
 - [ ] **Part 2 (30):** Public GitHub repo, successful Render build log, live `.onrender.com` URL
 - [ ] **Part 3 (25):** Screenshot of rows in the Supabase `feedback` table, and the same record shown in the web app
-- [ ] **Part 4 (25):** Postman screenshots for the 8 tests above (200, 201, 400, 404)
+- [ ] **Part 4 (25):** Postman screenshots for the tests above (200, 201, 400, 401, 404)
